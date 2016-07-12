@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -e
+
+elm-test TestRunner.elm
+elm make --output target/elm.js src/Main.elm

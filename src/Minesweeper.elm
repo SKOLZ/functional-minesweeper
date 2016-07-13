@@ -9,7 +9,7 @@ import Effects exposing (Effects)
 
 type GameState = LevelSelect | Win | Lose | InGame
 type Difficulty = Beginner | Advanced | Expert
-type GameAction = NoOp | Select Difficulty | UpdateMinefield Minefield.Action
+type Action = NoOp | Select Difficulty | UpdateMinefield Minefield.Action
 
 -- model
 
@@ -25,6 +25,7 @@ view address model =
   let
     controlsHtml = div [class "controls"]
       [
+        -- Signal.message address (Select translateDifficulty)
         select [on "change" targetValue (translateDifficulty >> Select >> Signal.message address)]
         [
           option [] [text "Select a difficulty..."],
@@ -35,8 +36,8 @@ view address model =
       ]
 
     -- minefieldHtml = model.minefield |> Maybe.map (Minefield.view (Signal.forwardTo address UpdateMinefield))
-    --minefieldHtml = Maybe.map (Minefield.view (Signal.forwardTo address UpdateMinefield)) model.board
-    minefieldHtml = (Maybe.map (Minefield.view (Signal.forwardTo address UpdateMinefield))) model.board
+    --minefieldHtml = Maybe.map (Minefield.view (Signal.forwardTo address UpdateMinefield)) model.minefield
+    minefieldHtml = Maybe.map (Minefield.view (Signal.forwardTo address UpdateMinefield)) model.minefield
 
     htmlElements = [Maybe.withDefault controlsHtml minefieldHtml]
   in
@@ -49,8 +50,8 @@ update action model =
   case action of
     NoOp -> (model, Effects.none)
 
-    Select difficulty ->\
-      ({model | minefield = Just(boardFor difficulty)}, state = InGame, Effects.none)
+    Select difficulty ->
+      ({ model | minefield = Just (boardFor difficulty), state = InGame }, Effects.none)
 
     UpdateMinefield action ->
       case model.minefield of
@@ -59,10 +60,10 @@ update action model =
             (minefield, effects) = Minefield.update action minefield
 
             updatedModel =
-              if minefield.hitMine then
+              if minefield.exploded then
                 {model | minefield = Just minefield, state = Lose}
               else
-                if minefield.isFullyExposed then
+                if minefield.cleared then
                   {model | minefield = Just minefield, state = Win}
                 else
                   {model | minefield = Just minefield}
@@ -74,8 +75,8 @@ update action model =
 
 -- other
 
-initial: Model
-initial =
+init: Model
+init =
   {
     minefield = Nothing,
     state = LevelSelect
@@ -93,8 +94,8 @@ boardFor: Difficulty -> Minefield.Model
 boardFor difficulty =
   case difficulty of
     Beginner ->
-      Minefield.create 9 10
+      Minefield.create 9 9 10
     Advanced ->
-      Minefield.create 16 40
+      Minefield.create 16 16 40
     Expert ->
-      Minefield.create 22 99
+      Minefield.create 22 22 99

@@ -1,13 +1,26 @@
 module Main where
 
-import StartApp.Simple exposing (start)
+import StartApp
 import Minesweeper
 import Html
+import Effects exposing (Effects)
+import Task exposing (Task)
+import Html exposing (Html)
 
-main : Signal Html.Html
-main =
-  start {
-    init = Minesweeper.initial,
+app =
+  StartApp.start {
+    init = init,
     view = Minesweeper.view,
-    update = Minesweeper.update
+    update = Minesweeper.update, inputs = []
   }
+
+main : Signal Html
+main =
+  app.html
+
+port tasks : Signal (Task Effects.Never ())
+port tasks =
+  app.tasks
+
+init : (Minesweeper.Model, Effects Minesweeper.Action)
+init = (Minesweeper.init, Effects.none)

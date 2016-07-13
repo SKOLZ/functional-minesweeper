@@ -1,0 +1,21 @@
+table {
+  border-collapse: collapse;
+}
+
+.tile {
+  width: 40px;
+  height: 40px;
+  background: #80A66F;
+  border: 1px solid #5F7A52;
+}
+
+.tile.cleared {
+  background: #BD9966;
+  border: 1px solid #967A53;
+}
+
+
+.tile.cleared.mine {
+  background: #BA4949;
+  border: 1px solid #943B3B;
+}

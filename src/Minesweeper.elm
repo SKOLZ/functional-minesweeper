@@ -6,16 +6,18 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Signal exposing (Address)
 import Effects exposing (Effects)
+import Random exposing (..)
 
 type GameState = LevelSelect | Win | Lose | InGame
 type Difficulty = Beginner | Advanced | Expert
-type Action = NoOp | Select Difficulty | UpdateMinefield Minefield.Action
+type Action = NoOp | Select Difficulty | UpdateMinefield Minefield.Action | RestartGame
 
 -- model
 
 type alias Model = {
   minefield: Maybe Minefield.Model,
-  state: GameState
+  state: GameState,
+  seed: Seed
 }
 
 -- view
@@ -35,11 +37,15 @@ view address model =
         ]
       ]
 
-    -- minefieldHtml = model.minefield |> Maybe.map (Minefield.view (Signal.forwardTo address UpdateMinefield))
-    --minefieldHtml = Maybe.map (Minefield.view (Signal.forwardTo address UpdateMinefield)) model.minefield
+    gameStateHtml = div [class "state"] [htmlStateImage model.state]
+    restartButtonHtml = button [class "restart-button", onClick address RestartGame] [text "Restart Game"]
+
     minefieldHtml = Maybe.map (Minefield.view (Signal.forwardTo address UpdateMinefield)) model.minefield
 
-    htmlElements = [Maybe.withDefault controlsHtml minefieldHtml]
+    htmlElements =
+      case model.state of
+        LevelSelect -> [gameStateHtml, controlsHtml]
+        otherwise -> [gameStateHtml, Maybe.withDefault controlsHtml minefieldHtml, restartButtonHtml]
   in
     div [] htmlElements
 
@@ -51,7 +57,7 @@ update action model =
     NoOp -> (model, Effects.none)
 
     Select difficulty ->
-      ({ model | minefield = Just (boardFor difficulty), state = InGame }, Effects.none)
+      ({ model | minefield = Just (boardFor difficulty model.seed), state = InGame }, Effects.none)
 
     UpdateMinefield action ->
       case model.minefield of
@@ -61,10 +67,10 @@ update action model =
 
             updatedModel =
               if minefield.exploded then
-                {model | minefield = Just minefield, state = Lose}
+                {model | minefield = Just minefield, state = Lose, seed = minefield.seed}
               else
                 if minefield.cleared then
-                  {model | minefield = Just minefield, state = Win}
+                  {model | minefield = Just minefield, state = Win, seed = minefield.seed}
                 else
                   {model | minefield = Just minefield}
           in
@@ -73,13 +79,29 @@ update action model =
         Nothing ->
           (model, Effects.none)
 
+    RestartGame ->
+      case model.minefield of
+        Just minefield ->
+          ({model | state = LevelSelect, minefield = Nothing, seed = minefield.seed}, Effects.none)
+        Nothing ->
+          (model, Effects.none)
+
 -- other
 
-init: Model
-init =
+htmlStateImage : GameState -> Html
+htmlStateImage state =
+  case state of
+    LevelSelect -> img [src "./images/levelSelect.png"] []
+    InGame -> img [src "./images/ingame.png"] []
+    Win -> img [src "./images/win.png"] []
+    Lose ->  img [src "./images/lose.png"] []
+
+init: Int -> Model
+init seed =
   {
     minefield = Nothing,
-    state = LevelSelect
+    state = LevelSelect,
+    seed = initialSeed seed
   }
 
 translateDifficulty: String -> Difficulty
@@ -90,12 +112,12 @@ translateDifficulty optionValue =
     "Expert" -> Expert
     _ -> Beginner
 
-boardFor: Difficulty -> Minefield.Model
-boardFor difficulty =
+boardFor: Difficulty -> Seed -> Minefield.Model
+boardFor difficulty seed =
   case difficulty of
     Beginner ->
-      Minefield.create 9 9 10
+      Minefield.create 9 9 10 seed
     Advanced ->
-      Minefield.create 16 16 40
+      Minefield.create 16 16 40 seed
     Expert ->
-      Minefield.create 22 22 99
+      Minefield.create 22 22 99 seed

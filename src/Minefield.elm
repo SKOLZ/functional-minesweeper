@@ -16,7 +16,8 @@ type Action = Click Tile | Mark Tile
 type alias Model = {
   field: List (List Tile),
   exploded: Bool,
-  cleared: Bool
+  cleared: Bool,
+  seed: Seed
 }
 
 -- view
@@ -30,7 +31,7 @@ view address minefield =
         onClick address (Click tile),
         onRightClick address (Mark tile)
       ]
-      [text ""]
+      [Tile.tileContent tile]
     ) row
     rows = List.map (\row -> tr [] ( tiles row )) minefield.field
   in
@@ -42,7 +43,7 @@ update : Action -> Model -> (Model, Effects Action)
 update action minefield =
   case action of
     Click tile ->
-      if tile.isMine then
+      if Tile.isMine tile then
         let
           clearedMinefield = clearAll minefield
         in
@@ -58,20 +59,25 @@ update action minefield =
 
 -- other
 
-create: Int -> Int -> Int -> Model
-create width height minesAmount =
+create: Int -> Int -> Int -> Seed -> Model
+create width height minesAmount seed =
+  let
+    (newField, newSeed) = initializeMinefield width height minesAmount seed
+  in
   {
-    field = initializeMinefield width height minesAmount,
+    field = newField,
     exploded = False,
-    cleared = False
+    cleared = False,
+    seed = newSeed
   }
 
-initializeMinefield : Int -> Int -> Int -> List (List Tile)
-initializeMinefield width height minesAmount =
+initializeMinefield : Int -> Int -> Int -> Seed -> (List (List Tile), Seed)
+initializeMinefield width height minesAmount seed =
   let
     emptyMinefield = makeMinefield width height
+    (minedMinefield, newSeed) = addMines seed minesAmount width height emptyMinefield
   in
-    addMines minesAmount (width * height) emptyMinefield
+    (calculateNeighbors minedMinefield, newSeed)
 
 makeMinefield : Int -> Int -> List (List Tile)
 makeMinefield width height =
@@ -79,23 +85,33 @@ makeMinefield width height =
     lowerBound start = start * width + 1
     upperBound start = (start + 1) * width
   in
-    List.map (\row -> List.map (\cell -> (Tile.create cell)) [lowerBound row..upperBound row]) [0..height - 1]
+    List.map (\row -> List.map (\col -> (Tile.create (row, col))) [0..width - 1]) [0..height - 1]
 
 
--- revisar estoooo!
-addMines : Int -> Int -> List (List Tile) -> List (List Tile)
-addMines minesAmount range field =
+addMines : Seed -> Int -> Int -> Int -> List (List Tile) -> (List (List Tile), Seed)
+addMines seed minesAmount width height field =
   let
-    seed = Random.initialSeed Random.maxInt
-    listGenerator = Random.list minesAmount (Random.int 1 range)
-    locations = fst (Random.generate listGenerator seed)
-    markAsMine tile =
-      if List.member tile.id locations then
-        Tile.makeMine tile
+    (minePositions, newSeed) = generateMines seed minesAmount [] width height field
+    update tile =
+      if List.member tile.id minePositions then
+        { tile | content = Mine }
       else
         tile
   in
-    List.map (\row -> List.map markAsMine row) field
+    (List.map (\row -> List.map update row) field, newSeed)
+
+generateMines : Seed -> Int -> List (Int, Int) -> Int -> Int -> List (List Tile) -> ( List ( Int, Int ), Seed )
+generateMines seed minesAmount minePositions width height field =
+  if List.length minePositions == minesAmount then
+    (minePositions, seed)
+  else
+    let
+      (x, seed1) = Random.generate (Random.int 0 (width - 1)) seed
+      (y, seed2) = Random.generate (Random.int 0 (height - 1)) seed1
+    in
+      case List.member (x, y) minePositions of
+        True  -> generateMines seed2 minesAmount minePositions width height field
+        False -> generateMines seed2 minesAmount ((x, y) :: minePositions) width height field
 
 isCleared: Model -> Bool
 isCleared minefield =
@@ -105,14 +121,90 @@ clearAll: Model -> Model
 clearAll minefield =
   { minefield | field = List.map (\row -> List.map Tile.clear row) minefield.field }
 
-clear: Int -> Model -> Model
+clear: (Int, Int) -> Model -> Model
 clear tileId minefield =
-  {minefield | field = updateTile tileId Tile.clear minefield.field}
+  { minefield | field = clearTileAndNeighbors [tileId] minefield.field }
 
-mark: Int -> Model -> Model
+mark: (Int, Int) -> Model -> Model
 mark tileId minefield =
-  {minefield | field = updateTile tileId Tile.mark minefield.field}
+  let
+    updatedMineField = { minefield | field = updateTile tileId Tile.mark minefield.field}
+  in
+    { updatedMineField | cleared = isCleared updatedMineField }
 
-updateTile: Int -> (Tile -> Tile) -> List (List Tile) -> List (List Tile)
+updateTile: (Int, Int) -> (Tile -> Tile) -> List (List Tile) -> List (List Tile)
 updateTile id update field =
   List.map (\row -> List.map (\tile -> if tile.id == id then update tile else tile) row) field
+
+clearTileAndNeighbors : List (Int, Int) -> List (List Tile) -> List (List Tile)
+clearTileAndNeighbors tiles field =
+  case tiles of
+    []          -> field
+    (x,y)::rest -> case (getIsTileClearedAndContent (x,y) field) of
+        (True, _) ->
+          clearTileAndNeighbors rest field
+        (False, Mine) ->
+          clearTileAndNeighbors rest field
+        (False, Neighbors 0) ->
+          let
+            newList = List.append (neighbors (x,y)) rest
+          in
+            clearTileAndNeighbors newList (clearTile (x, y) field)
+        (False, Neighbors n) ->
+          clearTileAndNeighbors rest (clearTile (x, y) field)
+
+getTile : (Int, Int) -> List (List Tile) -> Maybe Tile
+getTile (x, y) field =
+  let
+    flat = List.concat field
+    found = List.filter (\tile -> tile.id == (x,y)) flat
+
+  in
+    case found of
+      []     -> Nothing
+      hd::tl -> Just hd
+
+getIsTileClearedAndContent : (Int, Int) -> List (List Tile) -> (Bool, Content)
+getIsTileClearedAndContent (x,y) field =
+  case getTile (x, y) field of
+    Just tile -> (tile.isCleared, tile.content)
+    Nothing    -> (True, Neighbors 0)
+
+neighbors : (Int, Int) -> List (Int, Int)
+neighbors (x, y) =
+    [ (x-1,y-1), (x,y-1), (x+1,y-1),
+      (x-1,y),            (x+1,y),
+      (x-1,y+1), (x,y+1), (x+1,y+1) ]
+
+calculateNeighbors : List (List Tile) -> List (List Tile)
+calculateNeighbors field =
+  let
+    updateTileNeighbors tile =
+      if tile.content == Mine then
+        tile
+      else
+        { tile | content = Neighbors (countMines tile field) }
+
+  in
+    List.map (\row -> List.map updateTileNeighbors row) field
+
+countMines : Tile -> List (List Tile) -> Int
+countMines tile field =
+  let
+    mineCount (x,y) =
+      if isTileMined (x,y) field then
+        1
+      else
+        0
+  in
+    List.foldl (+) 0 (List.map mineCount (neighbors tile.id))
+
+isTileMined : (Int, Int) -> List (List Tile) -> Bool
+isTileMined (x, y) field =
+  case getTile (x, y) field of
+    Nothing -> False
+    Just t  -> t.content == Mine
+
+clearTile : (Int, Int) -> List (List Tile) -> List (List Tile)
+clearTile (x,y) field =
+  List.map (\row -> List.map (\tile -> if tile.id == (x,y) then { tile | isCleared = True } else tile) row) field

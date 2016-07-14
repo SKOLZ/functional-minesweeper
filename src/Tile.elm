@@ -4,23 +4,23 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 
 type Action = Clear | Mark
+type Content = Mine | Neighbors Int
 
 -- model
 
 type alias Tile = {
-  id : Int,
-  isMine : Bool,
+  id : (Int, Int),
+  content : Content,
   isCleared : Bool,
   isMarked : Bool
 }
 
-create : Int -> Tile
-create id = Tile id False False False
+create : (Int, Int) -> Tile
+create id = Tile id (Neighbors 0) False False
 
 clear : Tile -> Tile
 clear tile =
   { tile | isCleared = True }
-
 
 mark : Tile -> Tile
 mark tile =
@@ -39,7 +39,7 @@ tileClass tile =
         class
 
     addMine tile class =
-      if tile.isMine then
+      if isMine tile then
         class ++ " mine"
       else
         class
@@ -54,39 +54,18 @@ tileClass tile =
 
 makeMine : Tile -> Tile
 makeMine tile =
-  { tile | isMine = True }
----- view
+  { tile | content = Mine }
 
---view : Model -> Html
---view  model =
---  if (model.isCleared && model.isMine) then
---    div [ class "tile cleared mine" ] []
---  else if (model.isCleared && not model.isMine) then
---    div [ class "tile cleared" ] []
---  else if model.isMarked then
---    div [ class "tile marked" ] []
---  else
---    div [ class "tile"] []
+isMine : Tile -> Bool
+isMine tile =
+  tile.content == Mine
 
----- update
-
---update : Action -> Model -> Model
---update action model =
---  case action of
---    Clear ->
---      clear model
---    Mark ->
---      mark model
-
--- other
-
---init : Bool -> Int ->Model
---init isMine id = {
---  id = id,
---  isMine = isMine,
---  isCleared = False,
---  isMarked = False
--- }
-
-
+tileContent: Tile -> Html
+tileContent tile =
+  case (tile.isCleared, tile.isMarked, tile.content) of
+      (True, _, Mine) -> img [src "./images/mine.png"] []
+      (False, True, _) -> img [src "./images/mark.png"] []
+      (_, _, Neighbors 0) -> text ""
+      (True, _, Neighbors n) -> span [class ("neighbors-" ++ (toString n))] [text (toString n)]
+      otherwise -> text ""
 

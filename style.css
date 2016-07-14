@@ -1,12 +1,28 @@
+* {
+  font-family: 'Dosis', sans-serif;
+}
+
 table {
   border-collapse: collapse;
+  margin: 0 auto;
+}
+
+select {
+  -webkit-appearance: none;
 }
 
 .tile {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   background: #80A66F;
   border: 1px solid #5F7A52;
+  text-align: center;
+}
+
+.tile img {
+  width: 20px;
+  display: block;
+  margin: 0 auto;
 }
 
 .tile.cleared {
@@ -18,4 +34,88 @@ table {
 .tile.cleared.mine {
   background: #BA4949;
   border: 1px solid #943B3B;
+}
+
+.state {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.controls {
+  width: 400px;
+  margin: 20px auto;
+  position: relative;
+}
+
+select {
+  height: 40px;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 2px;
+  padding: 0 10px;
+  background: white;
+  border: 1px solid #ddd;
+}
+
+.controls::after {
+  content: ' ';
+  width: 10px;
+  height: 7px;
+  background: url(./images/caret.png);
+  background-size: 10px;
+  background-repeat: no-repeat;
+  position: absolute;
+  right: 20px;
+  top: 16px;
+}
+
+.restart-button {
+  display: block;
+  margin: 20px auto;
+  height: 40px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid #2e6da4;
+  background: #337ab7;
+  color: white;
+  border-radius: 2px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.restart-button:hover {
+  background: #2e6da4;
+}
+
+.neighbors-1 {
+  color: #333;
+}
+
+.neighbors-2 {
+  color: #222;
+}
+
+.neighbors-3 {
+  color: #111;
+}
+
+.neighbors-4 {
+  color: #000;
+}
+
+.neighbors-5 {
+  color: #444;
+}
+
+.neighbors-6 {
+  color: #555;
+}
+
+.neighbors-7 {
+  color: #666;
+}
+
+.neighbors-8 {
+  color: #777;
 }

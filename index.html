@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Bombs Away - Functional Minesweeper</title>
+  <link href='https://fonts.googleapis.com/css?family=Dosis:400,700' rel='stylesheet' type='text/css'>
   <link rel="stylesheet" type="text/css" href="style.css" media="screen" />
 </head>
 
@@ -13,7 +14,7 @@
 <script type="text/javascript" src="target/elm.js"></script>
 
 <script type="text/javascript">
-  var app = Elm.fullscreen(Elm.Main);
+  var app = Elm.fullscreen(Elm.Main, {startTime: Date.now()});
 </script>
 
 </html>

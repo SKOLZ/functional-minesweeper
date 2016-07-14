@@ -22,5 +22,7 @@ port tasks : Signal (Task Effects.Never ())
 port tasks =
   app.tasks
 
+port startTime : Int
+
 init : (Minesweeper.Model, Effects Minesweeper.Action)
-init = (Minesweeper.init, Effects.none)
+init = (Minesweeper.init startTime, Effects.none)

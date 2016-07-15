@@ -10620,25 +10620,79 @@ Elm.Tile.make = function (_elm) {
    var _U = Elm.Native.Utils.make(_elm),
    $Basics = Elm.Basics.make(_elm),
    $Debug = Elm.Debug.make(_elm),
+   $Html = Elm.Html.make(_elm),
+   $Html$Attributes = Elm.Html.Attributes.make(_elm),
    $List = Elm.List.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm);
    var _op = {};
-   var makeMine = function (tile) {    return _U.update(tile,{isMine: true});};
-   var tileClass = function (tile) {
-      var addCleared = F2(function (tile,$class) {    return tile.isCleared ? A2($Basics._op["++"],$class," cleared") : $class;});
-      var addMine = F2(function (tile,$class) {    return tile.isMine ? A2($Basics._op["++"],$class," mine") : $class;});
-      var addMarked = F2(function (tile,$class) {    return tile.isMarked ? A2($Basics._op["++"],$class," marked") : $class;});
-      return A2(addCleared,tile,A2(addMine,tile,A2(addMarked,tile,"tile")));
+   var tileContent = function (tile) {
+      var _p0 = {ctor: "_Tuple3",_0: tile.isCleared,_1: tile.isMarked,_2: tile.content};
+      _v0_4: do {
+         _v0_2: do {
+            if (_p0.ctor === "_Tuple3") {
+                  if (_p0._0 === false) {
+                        if (_p0._1 === true) {
+                              return A2($Html.img,_U.list([$Html$Attributes.src("./images/mark.png")]),_U.list([]));
+                           } else {
+                              if (_p0._2.ctor === "Neighbors" && _p0._2._0 === 0) {
+                                    break _v0_2;
+                                 } else {
+                                    break _v0_4;
+                                 }
+                           }
+                     } else {
+                        if (_p0._2.ctor === "Mine") {
+                              return A2($Html.img,_U.list([$Html$Attributes.src("./images/mine.png")]),_U.list([]));
+                           } else {
+                              if (_p0._2._0 === 0) {
+                                    break _v0_2;
+                                 } else {
+                                    var _p1 = _p0._2._0;
+                                    return A2($Html.span,
+                                    _U.list([$Html$Attributes.$class(A2($Basics._op["++"],"neighbors-",$Basics.toString(_p1)))]),
+                                    _U.list([$Html.text($Basics.toString(_p1))]));
+                                 }
+                           }
+                     }
+               } else {
+                  break _v0_4;
+               }
+         } while (false);
+         return $Html.text("");
+      } while (false);
+      return $Html.text("");
    };
    var mark = function (tile) {    return tile.isMarked || tile.isCleared ? _U.update(tile,{isMarked: false}) : _U.update(tile,{isMarked: true});};
    var clear = function (tile) {    return _U.update(tile,{isCleared: true});};
-   var Tile = F4(function (a,b,c,d) {    return {id: a,isMine: b,isCleared: c,isMarked: d};});
-   var create = function (id) {    return A4(Tile,id,false,false,false);};
+   var Tile = F4(function (a,b,c,d) {    return {id: a,content: b,isCleared: c,isMarked: d};});
+   var Neighbors = function (a) {    return {ctor: "Neighbors",_0: a};};
+   var create = function (id) {    return A4(Tile,id,Neighbors(0),false,false);};
+   var Mine = {ctor: "Mine"};
+   var makeMine = function (tile) {    return _U.update(tile,{content: Mine});};
+   var isMine = function (tile) {    return _U.eq(tile.content,Mine);};
+   var tileClass = function (tile) {
+      var addCleared = F2(function (tile,$class) {    return tile.isCleared ? A2($Basics._op["++"],$class," cleared") : $class;});
+      var addMine = F2(function (tile,$class) {    return isMine(tile) ? A2($Basics._op["++"],$class," mine") : $class;});
+      var addMarked = F2(function (tile,$class) {    return tile.isMarked ? A2($Basics._op["++"],$class," marked") : $class;});
+      return A2(addCleared,tile,A2(addMine,tile,A2(addMarked,tile,"tile")));
+   };
    var Mark = {ctor: "Mark"};
    var Clear = {ctor: "Clear"};
-   return _elm.Tile.values = {_op: _op,Clear: Clear,Mark: Mark,Tile: Tile,create: create,clear: clear,mark: mark,tileClass: tileClass,makeMine: makeMine};
+   return _elm.Tile.values = {_op: _op
+                             ,Clear: Clear
+                             ,Mark: Mark
+                             ,Mine: Mine
+                             ,Neighbors: Neighbors
+                             ,Tile: Tile
+                             ,create: create
+                             ,clear: clear
+                             ,mark: mark
+                             ,tileClass: tileClass
+                             ,makeMine: makeMine
+                             ,isMine: isMine
+                             ,tileContent: tileContent};
 };
 Elm.Html = Elm.Html || {};
 Elm.Html.Events = Elm.Html.Events || {};
@@ -10975,54 +11029,214 @@ Elm.Minefield.make = function (_elm) {
    $Tile = Elm.Tile.make(_elm),
    $Utils = Elm.Utils.make(_elm);
    var _op = {};
+   var clearTile = F2(function (_p0,field) {
+      var _p1 = _p0;
+      return A2($List.map,
+      function (row) {
+         return A2($List.map,
+         function (tile) {
+            return _U.eq(tile.id,{ctor: "_Tuple2",_0: _p1._0,_1: _p1._1}) ? _U.update(tile,{isCleared: true}) : tile;
+         },
+         row);
+      },
+      field);
+   });
+   var neighbors = function (_p2) {
+      var _p3 = _p2;
+      var _p5 = _p3._1;
+      var _p4 = _p3._0;
+      return _U.list([{ctor: "_Tuple2",_0: _p4 - 1,_1: _p5 - 1}
+                     ,{ctor: "_Tuple2",_0: _p4,_1: _p5 - 1}
+                     ,{ctor: "_Tuple2",_0: _p4 + 1,_1: _p5 - 1}
+                     ,{ctor: "_Tuple2",_0: _p4 - 1,_1: _p5}
+                     ,{ctor: "_Tuple2",_0: _p4 + 1,_1: _p5}
+                     ,{ctor: "_Tuple2",_0: _p4 - 1,_1: _p5 + 1}
+                     ,{ctor: "_Tuple2",_0: _p4,_1: _p5 + 1}
+                     ,{ctor: "_Tuple2",_0: _p4 + 1,_1: _p5 + 1}]);
+   };
+   var getTile = F2(function (_p6,field) {
+      var _p7 = _p6;
+      var flat = $List.concat(field);
+      var found = A2($List.filter,function (tile) {    return _U.eq(tile.id,{ctor: "_Tuple2",_0: _p7._0,_1: _p7._1});},flat);
+      var _p8 = found;
+      if (_p8.ctor === "[]") {
+            return $Maybe.Nothing;
+         } else {
+            return $Maybe.Just(_p8._0);
+         }
+   });
+   var getIsTileClearedAndContent = F2(function (_p9,field) {
+      var _p10 = _p9;
+      var _p11 = A2(getTile,{ctor: "_Tuple2",_0: _p10._0,_1: _p10._1},field);
+      if (_p11.ctor === "Just") {
+            var _p12 = _p11._0;
+            return {ctor: "_Tuple2",_0: _p12.isCleared,_1: _p12.content};
+         } else {
+            return {ctor: "_Tuple2",_0: true,_1: $Tile.Neighbors(0)};
+         }
+   });
+   var isTileMined = F2(function (_p13,field) {
+      var _p14 = _p13;
+      var _p15 = A2(getTile,{ctor: "_Tuple2",_0: _p14._0,_1: _p14._1},field);
+      if (_p15.ctor === "Nothing") {
+            return false;
+         } else {
+            return _U.eq(_p15._0.content,$Tile.Mine);
+         }
+   });
+   var countMines = F2(function (tile,field) {
+      var mineCount = function (_p16) {    var _p17 = _p16;return A2(isTileMined,{ctor: "_Tuple2",_0: _p17._0,_1: _p17._1},field) ? 1 : 0;};
+      return A3($List.foldl,F2(function (x,y) {    return x + y;}),0,A2($List.map,mineCount,neighbors(tile.id)));
+   });
+   var calculateNeighbors = function (field) {
+      var updateTileNeighbors = function (tile) {
+         return _U.eq(tile.content,$Tile.Mine) ? tile : _U.update(tile,{content: $Tile.Neighbors(A2(countMines,tile,field))});
+      };
+      return A2($List.map,function (row) {    return A2($List.map,updateTileNeighbors,row);},field);
+   };
+   var clearTileAndNeighbors = F2(function (tiles,field) {
+      clearTileAndNeighbors: while (true) {
+         var _p18 = tiles;
+         if (_p18.ctor === "[]") {
+               return field;
+            } else {
+               var _p22 = _p18._0._1;
+               var _p21 = _p18._0._0;
+               var _p20 = _p18._1;
+               var _p19 = A2(getIsTileClearedAndContent,{ctor: "_Tuple2",_0: _p21,_1: _p22},field);
+               if (_p19._0 === true) {
+                     var _v11 = _p20,_v12 = field;
+                     tiles = _v11;
+                     field = _v12;
+                     continue clearTileAndNeighbors;
+                  } else {
+                     if (_p19._1.ctor === "Mine") {
+                           var _v13 = _p20,_v14 = field;
+                           tiles = _v13;
+                           field = _v14;
+                           continue clearTileAndNeighbors;
+                        } else {
+                           if (_p19._1._0 === 0) {
+                                 var newList = A2($List.append,neighbors({ctor: "_Tuple2",_0: _p21,_1: _p22}),_p20);
+                                 var _v15 = newList,_v16 = A2(clearTile,{ctor: "_Tuple2",_0: _p21,_1: _p22},field);
+                                 tiles = _v15;
+                                 field = _v16;
+                                 continue clearTileAndNeighbors;
+                              } else {
+                                 var _v17 = _p20,_v18 = A2(clearTile,{ctor: "_Tuple2",_0: _p21,_1: _p22},field);
+                                 tiles = _v17;
+                                 field = _v18;
+                                 continue clearTileAndNeighbors;
+                              }
+                        }
+                  }
+            }
+      }
+   });
    var updateTile = F3(function (id,update,field) {
       return A2($List.map,function (row) {    return A2($List.map,function (tile) {    return _U.eq(tile.id,id) ? update(tile) : tile;},row);},field);
    });
-   var mark = F2(function (tileId,minefield) {    return _U.update(minefield,{field: A3(updateTile,tileId,$Tile.mark,minefield.field)});});
-   var clear = F2(function (tileId,minefield) {    return _U.update(minefield,{field: A3(updateTile,tileId,$Tile.clear,minefield.field)});});
+   var clear = F2(function (tileId,minefield) {    return _U.update(minefield,{field: A2(clearTileAndNeighbors,_U.list([tileId]),minefield.field)});});
    var clearAll = function (minefield) {
       return _U.update(minefield,{field: A2($List.map,function (row) {    return A2($List.map,$Tile.clear,row);},minefield.field)});
    };
-   var isCleared = function (minefield) {
-      return A2($List.all,function (row) {    return A2($List.all,function (tile) {    return tile.isCleared || tile.isMarked;},row);},minefield.field);
+   var getMarkedTiles = function (field) {
+      var isMarked = function (tile) {    var _p23 = tile.isMarked;if (_p23 === true) {    return 1;} else {    return 0;}};
+      var flat = $List.concat(field);
+      return A3($List.foldl,F2(function (x,y) {    return x + y;}),0,A2($List.map,isMarked,flat));
    };
-   var addMines = F3(function (minesAmount,range,field) {
-      var listGenerator = A2($Random.list,minesAmount,A2($Random.$int,1,range));
-      var seed = $Random.initialSeed($Random.maxInt);
-      var locations = $Basics.fst(A2($Random.generate,listGenerator,seed));
-      var markAsMine = function (tile) {    return A2($List.member,tile.id,locations) ? $Tile.makeMine(tile) : tile;};
-      return A2($List.map,function (row) {    return A2($List.map,markAsMine,row);},field);
+   var isCleared = function (minefield) {
+      var markedTiles = getMarkedTiles(minefield.field);
+      return A2($List.all,
+      function (row) {
+         return A2($List.all,function (tile) {    return tile.isCleared || tile.isMarked;},row);
+      },
+      minefield.field) && _U.eq(markedTiles,minefield.minesAmount);
+   };
+   var mark = F2(function (tileId,minefield) {
+      var updatedMineField = _U.update(minefield,{field: A3(updateTile,tileId,$Tile.mark,minefield.field)});
+      return _U.update(updatedMineField,{cleared: isCleared(updatedMineField)});
+   });
+   var generateMines = F6(function (seed,minesAmount,minePositions,width,height,field) {
+      generateMines: while (true) if (_U.eq($List.length(minePositions),minesAmount)) return {ctor: "_Tuple2",_0: minePositions,_1: seed}; else {
+            var _p24 = A2($Random.generate,A2($Random.$int,0,width - 1),seed);
+            var x = _p24._0;
+            var seed1 = _p24._1;
+            var _p25 = A2($Random.generate,A2($Random.$int,0,height - 1),seed1);
+            var y = _p25._0;
+            var seed2 = _p25._1;
+            var _p26 = A2($List.member,{ctor: "_Tuple2",_0: x,_1: y},minePositions);
+            if (_p26 === true) {
+                  var _v21 = seed2,_v22 = minesAmount,_v23 = minePositions,_v24 = width,_v25 = height,_v26 = field;
+                  seed = _v21;
+                  minesAmount = _v22;
+                  minePositions = _v23;
+                  width = _v24;
+                  height = _v25;
+                  field = _v26;
+                  continue generateMines;
+               } else {
+                  var _v27 = seed2,
+                  _v28 = minesAmount,
+                  _v29 = A2($List._op["::"],{ctor: "_Tuple2",_0: x,_1: y},minePositions),
+                  _v30 = width,
+                  _v31 = height,
+                  _v32 = field;
+                  seed = _v27;
+                  minesAmount = _v28;
+                  minePositions = _v29;
+                  width = _v30;
+                  height = _v31;
+                  field = _v32;
+                  continue generateMines;
+               }
+         }
+   });
+   var addMines = F5(function (seed,minesAmount,width,height,field) {
+      var _p27 = A6(generateMines,seed,minesAmount,_U.list([]),width,height,field);
+      var minePositions = _p27._0;
+      var newSeed = _p27._1;
+      var update = function (tile) {    return A2($List.member,tile.id,minePositions) ? _U.update(tile,{content: $Tile.Mine}) : tile;};
+      return {ctor: "_Tuple2",_0: A2($List.map,function (row) {    return A2($List.map,update,row);},field),_1: newSeed};
    });
    var makeMinefield = F2(function (width,height) {
       var upperBound = function (start) {    return (start + 1) * width;};
       var lowerBound = function (start) {    return start * width + 1;};
       return A2($List.map,
       function (row) {
-         return A2($List.map,function (cell) {    return $Tile.create(cell);},_U.range(lowerBound(row),upperBound(row)));
+         return A2($List.map,function (col) {    return $Tile.create({ctor: "_Tuple2",_0: row,_1: col});},_U.range(0,width - 1));
       },
       _U.range(0,height - 1));
    });
-   var initializeMinefield = F3(function (width,height,minesAmount) {
+   var initializeMinefield = F4(function (width,height,minesAmount,seed) {
       var emptyMinefield = A2(makeMinefield,width,height);
-      return A3(addMines,minesAmount,width * height,emptyMinefield);
+      var _p28 = A5(addMines,seed,minesAmount,width,height,emptyMinefield);
+      var minedMinefield = _p28._0;
+      var newSeed = _p28._1;
+      return {ctor: "_Tuple2",_0: calculateNeighbors(minedMinefield),_1: newSeed};
    });
-   var create = F3(function (width,height,minesAmount) {    return {field: A3(initializeMinefield,width,height,minesAmount),exploded: false,cleared: false};});
+   var create = F4(function (width,height,minesAmount,seed) {
+      var _p29 = A4(initializeMinefield,width,height,minesAmount,seed);
+      var newField = _p29._0;
+      var newSeed = _p29._1;
+      return {field: newField,exploded: false,cleared: false,seed: newSeed,minesAmount: minesAmount};
+   });
    var update = F2(function (action,minefield) {
-      var _p0 = action;
-      if (_p0.ctor === "Click") {
-            var _p1 = _p0._0;
-            if (_p1.isMine) {
-                  var clearedMinefield = clearAll(minefield);
-                  return {ctor: "_Tuple2",_0: _U.update(clearedMinefield,{exploded: true}),_1: $Effects.none};
-               } else {
-                  var updatedMinefield = A2(clear,_p1.id,minefield);
-                  return {ctor: "_Tuple2",_0: _U.update(updatedMinefield,{cleared: isCleared(updatedMinefield)}),_1: $Effects.none};
-               }
+      var _p30 = action;
+      if (_p30.ctor === "Click") {
+            var _p31 = _p30._0;
+            if (_p31.isMarked) return {ctor: "_Tuple2",_0: minefield,_1: $Effects.none}; else if ($Tile.isMine(_p31)) {
+                     var clearedMinefield = clearAll(minefield);
+                     return {ctor: "_Tuple2",_0: _U.update(clearedMinefield,{exploded: true}),_1: $Effects.none};
+                  } else {
+                     var updatedMinefield = A2(clear,_p31.id,minefield);
+                     return {ctor: "_Tuple2",_0: _U.update(updatedMinefield,{cleared: isCleared(updatedMinefield)}),_1: $Effects.none};
+                  }
          } else {
-            return {ctor: "_Tuple2",_0: A2(mark,_p0._0.id,minefield),_1: $Effects.none};
+            return {ctor: "_Tuple2",_0: A2(mark,_p30._0.id,minefield),_1: $Effects.none};
          }
    });
-   var Model = F3(function (a,b,c) {    return {field: a,exploded: b,cleared: c};});
+   var Model = F5(function (a,b,c,d,e) {    return {field: a,exploded: b,cleared: c,seed: d,minesAmount: e};});
    var Mark = function (a) {    return {ctor: "Mark",_0: a};};
    var Click = function (a) {    return {ctor: "Click",_0: a};};
    var view = F2(function (address,minefield) {
@@ -11031,7 +11245,7 @@ Elm.Minefield.make = function (_elm) {
          function (tile) {
             return A2($Html.td,
             _U.list([$Html$Attributes.$class($Tile.tileClass(tile)),A2($Html$Events.onClick,address,Click(tile)),A2($Utils.onRightClick,address,Mark(tile))]),
-            _U.list([$Html.text("")]));
+            _U.list([$Tile.tileContent(tile)]));
          },
          row);
       };
@@ -11048,11 +11262,21 @@ Elm.Minefield.make = function (_elm) {
                                   ,initializeMinefield: initializeMinefield
                                   ,makeMinefield: makeMinefield
                                   ,addMines: addMines
+                                  ,generateMines: generateMines
                                   ,isCleared: isCleared
+                                  ,getMarkedTiles: getMarkedTiles
                                   ,clearAll: clearAll
                                   ,clear: clear
                                   ,mark: mark
-                                  ,updateTile: updateTile};
+                                  ,updateTile: updateTile
+                                  ,clearTileAndNeighbors: clearTileAndNeighbors
+                                  ,getTile: getTile
+                                  ,getIsTileClearedAndContent: getIsTileClearedAndContent
+                                  ,neighbors: neighbors
+                                  ,calculateNeighbors: calculateNeighbors
+                                  ,countMines: countMines
+                                  ,isTileMined: isTileMined
+                                  ,clearTile: clearTile};
 };
 Elm.Minesweeper = Elm.Minesweeper || {};
 Elm.Minesweeper.make = function (_elm) {
@@ -11069,17 +11293,27 @@ Elm.Minesweeper.make = function (_elm) {
    $List = Elm.List.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
    $Minefield = Elm.Minefield.make(_elm),
+   $Random = Elm.Random.make(_elm),
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm);
    var _op = {};
-   var boardFor = function (difficulty) {
+   var boardFor = F2(function (difficulty,seed) {
       var _p0 = difficulty;
       switch (_p0.ctor)
-      {case "Beginner": return A3($Minefield.create,9,9,10);
-         case "Advanced": return A3($Minefield.create,16,16,40);
-         default: return A3($Minefield.create,22,22,99);}
+      {case "Beginner": return A4($Minefield.create,9,9,10,seed);
+         case "Advanced": return A4($Minefield.create,16,16,40,seed);
+         default: return A4($Minefield.create,22,22,99,seed);}
+   });
+   var htmlStateImage = function (state) {
+      var _p1 = state;
+      switch (_p1.ctor)
+      {case "LevelSelect": return A2($Html.img,_U.list([$Html$Attributes.src("./images/levelSelect.png")]),_U.list([]));
+         case "InGame": return A2($Html.img,_U.list([$Html$Attributes.src("./images/ingame.png")]),_U.list([]));
+         case "Win": return A2($Html.img,_U.list([$Html$Attributes.src("./images/win.png")]),_U.list([]));
+         default: return A2($Html.img,_U.list([$Html$Attributes.src("./images/lose.png")]),_U.list([]));}
    };
-   var Model = F2(function (a,b) {    return {minefield: a,state: b};});
+   var Model = F3(function (a,b,c) {    return {minefield: a,state: b,seed: c};});
+   var RestartGame = {ctor: "RestartGame"};
    var UpdateMinefield = function (a) {    return {ctor: "UpdateMinefield",_0: a};};
    var Select = function (a) {    return {ctor: "Select",_0: a};};
    var NoOp = {ctor: "NoOp"};
@@ -11087,8 +11321,8 @@ Elm.Minesweeper.make = function (_elm) {
    var Advanced = {ctor: "Advanced"};
    var Beginner = {ctor: "Beginner"};
    var translateDifficulty = function (optionValue) {
-      var _p1 = optionValue;
-      switch (_p1)
+      var _p2 = optionValue;
+      switch (_p2)
       {case "Beginner": return Beginner;
          case "Advanced": return Advanced;
          case "Expert": return Expert;
@@ -11096,44 +11330,62 @@ Elm.Minesweeper.make = function (_elm) {
    };
    var view = F2(function (address,model) {
       var minefieldHtml = A2($Maybe.map,$Minefield.view(A2($Signal.forwardTo,address,UpdateMinefield)),model.minefield);
+      var restartButtonHtml = A2($Html.button,
+      _U.list([$Html$Attributes.$class("restart-button"),A2($Html$Events.onClick,address,RestartGame)]),
+      _U.list([$Html.text("Restart Game")]));
+      var gameStateHtml = A2($Html.div,_U.list([$Html$Attributes.$class("state")]),_U.list([htmlStateImage(model.state)]));
       var controlsHtml = A2($Html.div,
       _U.list([$Html$Attributes.$class("controls")]),
       _U.list([A2($Html.select,
       _U.list([A3($Html$Events.on,
       "change",
       $Html$Events.targetValue,
-      function (_p2) {
-         return A2($Signal.message,address,Select(translateDifficulty(_p2)));
+      function (_p3) {
+         return A2($Signal.message,address,Select(translateDifficulty(_p3)));
       })]),
       _U.list([A2($Html.option,_U.list([]),_U.list([$Html.text("Select a difficulty...")]))
               ,A2($Html.option,_U.list([]),_U.list([$Html.text("Beginner")]))
               ,A2($Html.option,_U.list([]),_U.list([$Html.text("Advanced")]))
               ,A2($Html.option,_U.list([]),_U.list([$Html.text("Expert")]))]))]));
-      var htmlElements = _U.list([A2($Maybe.withDefault,controlsHtml,minefieldHtml)]);
+      var htmlElements = function () {
+         var _p4 = model.state;
+         if (_p4.ctor === "LevelSelect") {
+               return _U.list([gameStateHtml,controlsHtml]);
+            } else {
+               return _U.list([gameStateHtml,A2($Maybe.withDefault,controlsHtml,minefieldHtml),restartButtonHtml]);
+            }
+      }();
       return A2($Html.div,_U.list([]),htmlElements);
    });
    var InGame = {ctor: "InGame"};
    var Lose = {ctor: "Lose"};
    var Win = {ctor: "Win"};
+   var LevelSelect = {ctor: "LevelSelect"};
    var update = F2(function (action,model) {
-      var _p3 = action;
-      switch (_p3.ctor)
+      var _p5 = action;
+      switch (_p5.ctor)
       {case "NoOp": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
-         case "Select": return {ctor: "_Tuple2",_0: _U.update(model,{minefield: $Maybe.Just(boardFor(_p3._0)),state: InGame}),_1: $Effects.none};
-         default: var _p4 = model.minefield;
-           if (_p4.ctor === "Just") {
-                 var _p5 = A2($Minefield.update,_p3._0,_p4._0);
-                 var minefield = _p5._0;
-                 var effects = _p5._1;
-                 var updatedModel = minefield.exploded ? _U.update(model,{minefield: $Maybe.Just(minefield),state: Lose}) : minefield.cleared ? _U.update(model,
-                 {minefield: $Maybe.Just(minefield),state: Win}) : _U.update(model,{minefield: $Maybe.Just(minefield)});
+         case "Select": return {ctor: "_Tuple2",_0: _U.update(model,{minefield: $Maybe.Just(A2(boardFor,_p5._0,model.seed)),state: InGame}),_1: $Effects.none};
+         case "UpdateMinefield": var _p6 = model.minefield;
+           if (_p6.ctor === "Just") {
+                 var _p7 = A2($Minefield.update,_p5._0,_p6._0);
+                 var minefield = _p7._0;
+                 var effects = _p7._1;
+                 var updatedModel = minefield.exploded ? _U.update(model,
+                 {minefield: $Maybe.Just(minefield),state: Lose,seed: minefield.seed}) : minefield.cleared ? _U.update(model,
+                 {minefield: $Maybe.Just(minefield),state: Win,seed: minefield.seed}) : _U.update(model,{minefield: $Maybe.Just(minefield)});
                  return {ctor: "_Tuple2",_0: updatedModel,_1: A2($Effects.map,UpdateMinefield,effects)};
+              } else {
+                 return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
+              }
+         default: var _p8 = model.minefield;
+           if (_p8.ctor === "Just") {
+                 return {ctor: "_Tuple2",_0: _U.update(model,{state: LevelSelect,minefield: $Maybe.Nothing,seed: _p8._0.seed}),_1: $Effects.none};
               } else {
                  return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
               }}
    });
-   var LevelSelect = {ctor: "LevelSelect"};
-   var init = {minefield: $Maybe.Nothing,state: LevelSelect};
+   var init = function (seed) {    return {minefield: $Maybe.Nothing,state: LevelSelect,seed: $Random.initialSeed(seed)};};
    return _elm.Minesweeper.values = {_op: _op
                                     ,LevelSelect: LevelSelect
                                     ,Win: Win
@@ -11145,9 +11397,11 @@ Elm.Minesweeper.make = function (_elm) {
                                     ,NoOp: NoOp
                                     ,Select: Select
                                     ,UpdateMinefield: UpdateMinefield
+                                    ,RestartGame: RestartGame
                                     ,Model: Model
                                     ,view: view
                                     ,update: update
+                                    ,htmlStateImage: htmlStateImage
                                     ,init: init
                                     ,translateDifficulty: translateDifficulty
                                     ,boardFor: boardFor};
@@ -11170,7 +11424,12 @@ Elm.Main.make = function (_elm) {
    $StartApp = Elm.StartApp.make(_elm),
    $Task = Elm.Task.make(_elm);
    var _op = {};
-   var init = {ctor: "_Tuple2",_0: $Minesweeper.init,_1: $Effects.none};
+   var startTime = Elm.Native.Port.make(_elm).inbound("startTime",
+   "Int",
+   function (v) {
+      return typeof v === "number" && isFinite(v) && Math.floor(v) === v ? v : _U.badPort("an integer",v);
+   });
+   var init = {ctor: "_Tuple2",_0: $Minesweeper.init(startTime),_1: $Effects.none};
    var app = $StartApp.start({init: init,view: $Minesweeper.view,update: $Minesweeper.update,inputs: _U.list([])});
    var main = app.html;
    var tasks = Elm.Native.Task.make(_elm).performSignal("tasks",app.tasks);

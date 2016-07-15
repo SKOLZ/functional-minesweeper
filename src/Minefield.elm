@@ -17,7 +17,8 @@ type alias Model = {
   field: List (List Tile),
   exploded: Bool,
   cleared: Bool,
-  seed: Seed
+  seed: Seed,
+  minesAmount: Int
 }
 
 -- view
@@ -43,16 +44,19 @@ update : Action -> Model -> (Model, Effects Action)
 update action minefield =
   case action of
     Click tile ->
-      if Tile.isMine tile then
-        let
-          clearedMinefield = clearAll minefield
-        in
-          ({clearedMinefield | exploded = True}, Effects.none)
+      if tile.isMarked then
+        (minefield, Effects.none)
       else
-        let
-          updatedMinefield = clear tile.id minefield
-        in
-          ({updatedMinefield | cleared = isCleared updatedMinefield}, Effects.none)
+        if Tile.isMine tile then
+          let
+            clearedMinefield = clearAll minefield
+          in
+            ({clearedMinefield | exploded = True}, Effects.none)
+        else
+          let
+            updatedMinefield = clear tile.id minefield
+          in
+            ({updatedMinefield | cleared = isCleared updatedMinefield}, Effects.none)
 
     Mark tile ->
       (mark tile.id minefield, Effects.none)
@@ -68,7 +72,8 @@ create width height minesAmount seed =
     field = newField,
     exploded = False,
     cleared = False,
-    seed = newSeed
+    seed = newSeed,
+    minesAmount = minesAmount
   }
 
 initializeMinefield : Int -> Int -> Int -> Seed -> (List (List Tile), Seed)
@@ -115,7 +120,21 @@ generateMines seed minesAmount minePositions width height field =
 
 isCleared: Model -> Bool
 isCleared minefield =
-  List.all (\row -> List.all (\tile -> tile.isCleared || tile.isMarked) row) minefield.field
+  let
+    markedTiles = getMarkedTiles minefield.field
+  in
+    (List.all (\row -> List.all (\tile -> tile.isCleared || tile.isMarked) row) minefield.field) && markedTiles == minefield.minesAmount
+
+getMarkedTiles : List (List Tile) -> Int
+getMarkedTiles field =
+  let
+    flat = List.concat field
+    isMarked tile =
+      case tile.isMarked of
+        True -> 1
+        False -> 0
+  in
+  List.foldl (+) 0 (List.map isMarked flat)
 
 clearAll: Model -> Model
 clearAll minefield =

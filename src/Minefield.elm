@@ -45,18 +45,24 @@ update action minefield =
   case action of
     Click tile ->
       if tile.isMarked then
-        (minefield, Effects.none)
+          (minefield, Effects.none)
       else
-        if Tile.isMine tile then
+        if tile.isCleared then
           let
-            clearedMinefield = clearAll minefield
+            updatedMinefield = clearClearedTile (neighbors tile.id) minefield
           in
-            ({clearedMinefield | exploded = True}, Effects.none)
+            (updatedMinefield, Effects.none)
         else
-          let
-            updatedMinefield = clear tile.id minefield
-          in
-            ({updatedMinefield | cleared = isCleared updatedMinefield}, Effects.none)
+          if Tile.isMine tile then
+            let
+              clearedMinefield = clearAll minefield
+            in
+              ({clearedMinefield | exploded = True}, Effects.none)
+          else
+            let
+              updatedMinefield = clear tile.id minefield
+            in
+              ({updatedMinefield | cleared = isCleared updatedMinefield}, Effects.none)
 
     Mark tile ->
       (mark tile.id minefield, Effects.none)
@@ -227,3 +233,29 @@ isTileMined (x, y) field =
 clearTile : (Int, Int) -> List (List Tile) -> List (List Tile)
 clearTile (x,y) field =
   List.map (\row -> List.map (\tile -> if tile.id == (x,y) then { tile | isCleared = True } else tile) row) field
+
+clearClearedTile : List (Int, Int) -> Model -> Model
+clearClearedTile tiles minefield =
+  case tiles of
+    [] -> { minefield | cleared = isCleared minefield }
+    (x,y)::rest ->
+      let
+        currentTile = getTile (x,y) minefield.field
+      in
+        case currentTile of
+          Just tile ->
+            if tile.isMarked then
+              clearClearedTile rest minefield
+            else
+              if Tile.isMine tile then
+                let
+                  clearedMinefield = clearAll minefield
+                in
+                  {clearedMinefield | exploded = True}
+              else
+                let
+                  updatedField = clearTileAndNeighbors [(x,y)] minefield.field
+                in
+                  clearClearedTile rest { minefield | field = updatedField }
+          Nothing ->
+            clearClearedTile rest minefield

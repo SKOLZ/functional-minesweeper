@@ -11157,45 +11157,82 @@ Elm.Minefield.make = function (_elm) {
       var updatedMineField = _U.update(minefield,{field: A3(updateTile,tileId,$Tile.mark,minefield.field)});
       return _U.update(updatedMineField,{cleared: isCleared(updatedMineField)});
    });
+   var clearClearedTile = F2(function (tiles,minefield) {
+      clearClearedTile: while (true) {
+         var _p24 = tiles;
+         if (_p24.ctor === "[]") {
+               return _U.update(minefield,{cleared: isCleared(minefield)});
+            } else {
+               var _p29 = _p24._0._1;
+               var _p28 = _p24._0._0;
+               var _p27 = _p24._1;
+               var currentTile = A2(getTile,{ctor: "_Tuple2",_0: _p28,_1: _p29},minefield.field);
+               var _p25 = currentTile;
+               if (_p25.ctor === "Just") {
+                     var _p26 = _p25._0;
+                     if (_p26.isMarked) {
+                           var _v22 = _p27,_v23 = minefield;
+                           tiles = _v22;
+                           minefield = _v23;
+                           continue clearClearedTile;
+                        } else if ($Tile.isMine(_p26)) {
+                              var clearedMinefield = clearAll(minefield);
+                              return _U.update(clearedMinefield,{exploded: true});
+                           } else {
+                              var updatedField = A2(clearTileAndNeighbors,_U.list([{ctor: "_Tuple2",_0: _p28,_1: _p29}]),minefield.field);
+                              var _v24 = _p27,_v25 = _U.update(minefield,{field: updatedField});
+                              tiles = _v24;
+                              minefield = _v25;
+                              continue clearClearedTile;
+                           }
+                  } else {
+                     var _v26 = _p27,_v27 = minefield;
+                     tiles = _v26;
+                     minefield = _v27;
+                     continue clearClearedTile;
+                  }
+            }
+      }
+   });
    var generateMines = F6(function (seed,minesAmount,minePositions,width,height,field) {
       generateMines: while (true) if (_U.eq($List.length(minePositions),minesAmount)) return {ctor: "_Tuple2",_0: minePositions,_1: seed}; else {
-            var _p24 = A2($Random.generate,A2($Random.$int,0,width - 1),seed);
-            var x = _p24._0;
-            var seed1 = _p24._1;
-            var _p25 = A2($Random.generate,A2($Random.$int,0,height - 1),seed1);
-            var y = _p25._0;
-            var seed2 = _p25._1;
-            var _p26 = A2($List.member,{ctor: "_Tuple2",_0: x,_1: y},minePositions);
-            if (_p26 === true) {
-                  var _v21 = seed2,_v22 = minesAmount,_v23 = minePositions,_v24 = width,_v25 = height,_v26 = field;
-                  seed = _v21;
-                  minesAmount = _v22;
-                  minePositions = _v23;
-                  width = _v24;
-                  height = _v25;
-                  field = _v26;
+            var _p30 = A2($Random.generate,A2($Random.$int,0,width - 1),seed);
+            var x = _p30._0;
+            var seed1 = _p30._1;
+            var _p31 = A2($Random.generate,A2($Random.$int,0,height - 1),seed1);
+            var y = _p31._0;
+            var seed2 = _p31._1;
+            var _p32 = A2($List.member,{ctor: "_Tuple2",_0: x,_1: y},minePositions);
+            if (_p32 === true) {
+                  var _v29 = seed2,_v30 = minesAmount,_v31 = minePositions,_v32 = width,_v33 = height,_v34 = field;
+                  seed = _v29;
+                  minesAmount = _v30;
+                  minePositions = _v31;
+                  width = _v32;
+                  height = _v33;
+                  field = _v34;
                   continue generateMines;
                } else {
-                  var _v27 = seed2,
-                  _v28 = minesAmount,
-                  _v29 = A2($List._op["::"],{ctor: "_Tuple2",_0: x,_1: y},minePositions),
-                  _v30 = width,
-                  _v31 = height,
-                  _v32 = field;
-                  seed = _v27;
-                  minesAmount = _v28;
-                  minePositions = _v29;
-                  width = _v30;
-                  height = _v31;
-                  field = _v32;
+                  var _v35 = seed2,
+                  _v36 = minesAmount,
+                  _v37 = A2($List._op["::"],{ctor: "_Tuple2",_0: x,_1: y},minePositions),
+                  _v38 = width,
+                  _v39 = height,
+                  _v40 = field;
+                  seed = _v35;
+                  minesAmount = _v36;
+                  minePositions = _v37;
+                  width = _v38;
+                  height = _v39;
+                  field = _v40;
                   continue generateMines;
                }
          }
    });
    var addMines = F5(function (seed,minesAmount,width,height,field) {
-      var _p27 = A6(generateMines,seed,minesAmount,_U.list([]),width,height,field);
-      var minePositions = _p27._0;
-      var newSeed = _p27._1;
+      var _p33 = A6(generateMines,seed,minesAmount,_U.list([]),width,height,field);
+      var minePositions = _p33._0;
+      var newSeed = _p33._1;
       var update = function (tile) {    return A2($List.member,tile.id,minePositions) ? _U.update(tile,{content: $Tile.Mine}) : tile;};
       return {ctor: "_Tuple2",_0: A2($List.map,function (row) {    return A2($List.map,update,row);},field),_1: newSeed};
    });
@@ -11210,30 +11247,33 @@ Elm.Minefield.make = function (_elm) {
    });
    var initializeMinefield = F4(function (width,height,minesAmount,seed) {
       var emptyMinefield = A2(makeMinefield,width,height);
-      var _p28 = A5(addMines,seed,minesAmount,width,height,emptyMinefield);
-      var minedMinefield = _p28._0;
-      var newSeed = _p28._1;
+      var _p34 = A5(addMines,seed,minesAmount,width,height,emptyMinefield);
+      var minedMinefield = _p34._0;
+      var newSeed = _p34._1;
       return {ctor: "_Tuple2",_0: calculateNeighbors(minedMinefield),_1: newSeed};
    });
    var create = F4(function (width,height,minesAmount,seed) {
-      var _p29 = A4(initializeMinefield,width,height,minesAmount,seed);
-      var newField = _p29._0;
-      var newSeed = _p29._1;
+      var _p35 = A4(initializeMinefield,width,height,minesAmount,seed);
+      var newField = _p35._0;
+      var newSeed = _p35._1;
       return {field: newField,exploded: false,cleared: false,seed: newSeed,minesAmount: minesAmount};
    });
    var update = F2(function (action,minefield) {
-      var _p30 = action;
-      if (_p30.ctor === "Click") {
-            var _p31 = _p30._0;
-            if (_p31.isMarked) return {ctor: "_Tuple2",_0: minefield,_1: $Effects.none}; else if ($Tile.isMine(_p31)) {
-                     var clearedMinefield = clearAll(minefield);
-                     return {ctor: "_Tuple2",_0: _U.update(clearedMinefield,{exploded: true}),_1: $Effects.none};
-                  } else {
-                     var updatedMinefield = A2(clear,_p31.id,minefield);
-                     return {ctor: "_Tuple2",_0: _U.update(updatedMinefield,{cleared: isCleared(updatedMinefield)}),_1: $Effects.none};
-                  }
+      var _p36 = action;
+      if (_p36.ctor === "Click") {
+            var _p37 = _p36._0;
+            if (_p37.isMarked) return {ctor: "_Tuple2",_0: minefield,_1: $Effects.none}; else if (_p37.isCleared) {
+                     var updatedMinefield = A2(clearClearedTile,neighbors(_p37.id),minefield);
+                     return {ctor: "_Tuple2",_0: updatedMinefield,_1: $Effects.none};
+                  } else if ($Tile.isMine(_p37)) {
+                        var clearedMinefield = clearAll(minefield);
+                        return {ctor: "_Tuple2",_0: _U.update(clearedMinefield,{exploded: true}),_1: $Effects.none};
+                     } else {
+                        var updatedMinefield = A2(clear,_p37.id,minefield);
+                        return {ctor: "_Tuple2",_0: _U.update(updatedMinefield,{cleared: isCleared(updatedMinefield)}),_1: $Effects.none};
+                     }
          } else {
-            return {ctor: "_Tuple2",_0: A2(mark,_p30._0.id,minefield),_1: $Effects.none};
+            return {ctor: "_Tuple2",_0: A2(mark,_p36._0.id,minefield),_1: $Effects.none};
          }
    });
    var Model = F5(function (a,b,c,d,e) {    return {field: a,exploded: b,cleared: c,seed: d,minesAmount: e};});
@@ -11276,7 +11316,8 @@ Elm.Minefield.make = function (_elm) {
                                   ,calculateNeighbors: calculateNeighbors
                                   ,countMines: countMines
                                   ,isTileMined: isTileMined
-                                  ,clearTile: clearTile};
+                                  ,clearTile: clearTile
+                                  ,clearClearedTile: clearClearedTile};
 };
 Elm.Minesweeper = Elm.Minesweeper || {};
 Elm.Minesweeper.make = function (_elm) {
